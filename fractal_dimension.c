@@ -22,16 +22,15 @@ double linear_regression( double *x, double *y, int dim, double *slope, double *
     return ( dim * sumxy - sumx * sumy ) / sqrt( ( dim * sumxx - sumx * sumx ) * ( dim * sumyy - sumy * sumy ) );
 }
 
-double path_length( double *data, double dx, int dim )
+double path_length( double *data, int dim )
 {
-    double sum = 0, diff;
+    double sum;
     int i;
-    double dx2 = dx * dx;
     
+    sum = 0;
     for ( i = 0; i + 1 < dim; i++ )
     {
-        diff = data[ i + 1 ] - data[i];
-        sum += sqrt( diff * diff + dx2 );
+        sum += fabs( data[ i + 1 ] - data[i] );
     }
     return sum;
 }
@@ -39,32 +38,41 @@ double path_length( double *data, double dx, int dim )
 void higuchi_dimension( double *data, int npoints, double *slope, double *intercept, double *correlation )
 {
     double *log_path, *log_interval;
-    int i, j, k;
+    int i, j, k, npasses;
     int interval, slice_dim, num_logpoints;
     double *data_slice;
-    double partial_sum;
-    
-    num_logpoints = (int) log( npoints );
+    double d, partial_sum;
+  
+    if ( npoints > 100 )
+    {
+        num_logpoints = (int) ( log( npoints ) / log( 2 ) );
+        log_interval = (double*) malloc( num_logpoints * sizeof( double ) );
+        for ( i = 1; i < num_logpoints; i++ ) log_interval[i] = i * log( 2 );
+    }
+    else
+    {
+        num_logpoints = npoints - 3;
+        log_interval = (double*) malloc( num_logpoints * sizeof( double ) );
+        for ( i = 0; i < num_logpoints; i++ ) log_interval[i] = log( i + 2 );
+    }
     log_path = (double*) malloc( num_logpoints * sizeof(double) );
-    log_interval = (double*) malloc( num_logpoints * sizeof( double ) );
     
     for ( i = 0; i < num_logpoints; i++ )
     {
-        interval = (int) exp( i );
+        interval = (int) exp( log_interval[i] );
         slice_dim = npoints / interval;
-        data_slice = (double*) malloc( slice_dim * sizeof(double) );
         partial_sum = 0;
+        npasses = 0;
         for ( j = 0; j < interval; j++ )
         {
-            for ( k = 0; k < slice_dim; k++ )
+            for ( k = 0; j + interval * ( k + 1 ) < npoints; k++ )
             {
-                data_slice[k] = data[ j + interval * k ];
+                d = data[ interval * ( k + 1 ) + j ] - data[ interval * k + j ];
+                partial_sum += ( d > 0) ? d : -d;
+                npasses++;
             }
-            partial_sum += path_length( data_slice, 0, slice_dim );
         }
-        log_path[i] = -log( ( partial_sum / interval ) * ( (double)npoints / ( interval * slice_dim ) ) );
-        log_interval[i] = i;
-        free( data_slice );
+        log_path[i] = -log( ( partial_sum / npasses ) * ( (double)npoints / interval ) );
     }
     *correlation = linear_regression( log_interval, log_path, num_logpoints, slope, intercept );
     free( log_interval );
@@ -321,14 +329,15 @@ int main( int argc, char **argv )
     char *p;
     int i, maxnpoints = 0;
     int npoints = 0;
-    double *values = 0, *ptr, *xvalues, yvalues;
+    double *values = 0, *xvalues = 0, *yvalues = 0;
+    double *ptr;
     int print_outbreaks;
     double res_correlation, res_dimension, res_intercept;
     int res_direction, res_period;
     
     if ( argc == 1 ) 
     { 
-        printf( "arguments: -h (higuchi fd) | -p (peng f.d.) | -x (peng_xy) | -c (log-periodic);\n -d to print outbreaks in log-periodc model;\nstdin: input data, in one line\n" ); return 1;
+        printf( "arguments: -h : higuchi f.d.; -p, p_xy : peng f.d.; -c, -c_xy, -d, -d_xy : log-periodic approximation, -d prints extra output.\nstdin: input data, comma-separated, in one line\n" ); return 1;
     }
     
     p=buf;
@@ -345,7 +354,7 @@ int main( int argc, char **argv )
                 values = ptr;
             }
             *(p + 1) = 0;
-            values[ npoints++ ] = atof( buf );
+            if ( strlen(buf) ) values[ npoints++ ] = atof( buf );
             p = buf;
         }
         else 
@@ -357,66 +366,52 @@ int main( int argc, char **argv )
     values[ npoints++ ] = atof( buf );
     if ( npoints > 0 && argv[1][0] == '-' ) 
     {
+        if ( strcmp( argv[1]+2, "_xy" ) != 0 )
+        {
+            xvalues = (double*) malloc( sizeof( double ) * npoints );
+            for ( i = 0; i < npoints; i++ ) xvalues[i] = i;
+            yvalues = values;
+        }
+        else
+        {
+            npoints /= 2;
+            xvalues = (double*) malloc( sizeof( double ) * npoints );
+            yvalues = (double*) malloc( sizeof( double ) * npoints );
+            for ( i = 0; i < npoints; i++ )
+            {
+                xvalues[i] = values[ 2 * i ];
+                yvalues[i] = values[ 2 * i + 1 ];
+            }
+        }
         switch ( argv[1][1] )
         {
             case 'h':
             {
                 higuchi_dimension( values, npoints, &res_dimension, &res_intercept, &res_correlation );
                 printf( "dimension: %g\nintercept: %g\ncorrelation: %g\n", res_dimension, res_intercept, res_correlation );        
-                free( values );
                 break;
             }
             case 'p':
             {
-                double *xvalues = (double*) malloc( sizeof( double ) * npoints );
-                for ( i = 0; i < npoints; i++ ) xvalues[i] = i;
                 peng_dimension( xvalues, values, npoints,  &res_dimension, &res_intercept, &res_correlation );
                 printf( "dimension: %g\nintercept: %g\ncorrelation: %g\n", res_dimension, res_intercept, res_correlation );        
-                free( values );
-                free( xvalues );
-                break;
-            }        
-            case 'x':
-            {
-                npoints /= 2;
-                double *xvalues = (double*) malloc( sizeof( double ) * npoints );
-                double *yvalues = (double*) malloc( sizeof( double ) * npoints );
-                for ( i = 0; i < npoints; i++ )
-                {
-                    xvalues[i] = values[ 2 * i ];
-                    yvalues[i] = values[ 2 * i + 1 ];
-                }
-                peng_dimension( xvalues, yvalues, npoints, &res_dimension, &res_intercept, &res_correlation );
-                printf( "dimension: %g\nintercept: %g\ncorrelation: %g\n", res_dimension, res_intercept, res_correlation );        
-                free( values );
-                free( xvalues );
-                free( yvalues );
-                break;
+                       break;
             }
             case 'c':
             case 'd':
             {
-                npoints /= 2;
-                double *xvalues = (double*) malloc( sizeof( double ) * npoints );
-                double *yvalues = (double*) malloc( sizeof( double ) * npoints );
-                for ( i = 0; i < npoints; i++ )
-                {
-                    xvalues[i] = values[ 2 * i ];
-                    yvalues[i] = values[ 2 * i + 1 ];
-                }
                 print_outbreaks = ( argv[1][1] == 'c' ) ? 0 : 1;
                 logperiodic_approximation( xvalues, yvalues, npoints, print_outbreaks, &res_direction, &res_period, &res_dimension, &res_intercept, &res_correlation );
                 printf( "direction: %s\nperiod in beginning: %d\nrate: %g\nphase: %g\ncorrelation: %g\n", ( res_direction == 0 ) ? "expansion from past" : "contraction to future", res_period, res_dimension, res_intercept, res_correlation );          
-                free( values );
-                free( xvalues );
-                free( yvalues );
                 break;
             }
             default:
                 printf( "incorrect option key %s\n", argv[1] );
-                free( values );
                 break;
         }
     }
+    if ( xvalues != 0 ) free( xvalues );
+    if ( yvalues != 0 && yvalues != values ) free( yvalues );
+    if ( values != 0 ) free( values );
     return 0;
 }
