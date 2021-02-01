@@ -214,22 +214,38 @@ void peng_dimension( double *data_x, double *data_y, int npoints, double *slope,
 }
 
 #define MAX_OUTBREAKS 10
-#define MAX_PERIODS 100
-#define MAX_SAMPLES 1000
+#define MAX_SAMPLES 10000
 
 static double abs_diff( double p1, double p2 ) { if ( p1 == p2 ) return 0; return ( p1 - p2 > 0 ) ? ( p1 - p2 ) : ( p2 - p1 ); } 
 static int straight_compare( const void *p1, const void *p2 ) { if ( *(double*)p1 == *(double*)p2 ) return 0; return ( *(double*)p1 - *(double*)p2 > 0 ) ? 1 : -1; } 
 static int reversed_compare( const void *p1, const void *p2 ) { if ( *(double*)p1 == *(double*)p2 ) return 0; return ( *(double*)p1 - *(double*)p2 > 0 ) ? -1 : 1; } 
 
-void logperiodic_approximation( double *data_x, double *data_y, int num_points, int print_datapoints, int *res_direction, int *res_period,  double *res_slope, double *res_intercept, double *res_correlation )
+void logperiodic_intervals( int min_count, int num_peaks, int direction, double *peak_positions )
 {
-    int i, j, k, num_samples, num_outbreaks, num_periods;
+    int i;
+    double peak_at_left, peak_at_right, sum_of_intervals;
+    
+    peak_at_left = ( direction ) ? log( min_count + 1 ) : log( min_count + num_peaks );
+    peak_at_right = ( direction ) ? log( min_count + num_peaks ) : log( min_count + 1 );
+    
+    for ( i = 0; i < num_peaks; i++ ) 
+    {
+        sum_of_intervals = ( log( min_count + i + 1 ) - log( min_count + 1 ) );
+        peak_positions[ i ] = ( direction ) ? 
+            ( sum_of_intervals / ( peak_at_right - peak_at_left ) ) :
+            ( 1 - sum_of_intervals / ( peak_at_left - peak_at_right ) );
+    }
+}
+
+void logperiodic_approximation( double *data_x, double *data_y, int num_points, int print_datapoints, int *direction, int *first_period,  double *rate, double *phase, double *correlation )
+{
+    int i, j, k, num_samples, num_outbreaks, max_num_periods;
     double sum, sum_sq, d, vmin, slope, intercept, eps;
     double global_mean, local_mean, global_sd, local_sd, outbreak_bound;
     double log_distr[ MAX_SAMPLES ], log_count[ MAX_SAMPLES ];
     int indices[ MAX_OUTBREAKS] ;
     double outbreak_x[ MAX_OUTBREAKS ], outbreak_y[ MAX_OUTBREAKS ], *ptr_x, *ptr_y;
-    double periods[2][ MAX_PERIODS ];
+    double peak_positions[ MAX_OUTBREAKS ];
 
     num_samples = ( num_points < MAX_SAMPLES ) ? num_points : MAX_SAMPLES;
     sum = 0;
@@ -282,42 +298,45 @@ void logperiodic_approximation( double *data_x, double *data_y, int num_points, 
     
     qsort( outbreak_x, num_outbreaks, sizeof( double ), straight_compare );
 
-    num_periods = MAX_PERIODS - ( MAX_OUTBREAKS - num_outbreaks );
-    periods[0][0] = periods[1][0] = 0; 
-    for ( i = 1; i < num_periods; i++ ) periods[0][i] = log( i + 1 ) + periods[0][ i - 1 ];
-    for ( i = 1; i < num_periods; i++ ) periods[1][i] = log( num_periods - i ) + periods[1][ i - 1 ];
+    max_num_periods = 101;
 
     vmin = -1;
-    for ( i = 0; i < num_periods - num_outbreaks; i++ )
+    for ( i = 0; i < max_num_periods; i++ )
     {
         for ( j = 0; j < 2; j++ )
         {
-            d = linear_regression( periods[j] + i, outbreak_x, num_outbreaks, &slope, &intercept );
+            logperiodic_intervals( i, num_outbreaks, j, peak_positions );
+
+            d = linear_regression( peak_positions, outbreak_x, num_outbreaks, &slope, &intercept );
+ 
             if ( vmin < 0 || vmin > d )
             {
                 vmin = d;
-                *res_direction = j;
-                *res_period = i;   
+                *direction = j;
+                *first_period = i;   
+                *rate = slope;
+                *phase = intercept;
+                *correlation = d;
             }
         }
     }
     
-    *res_correlation = linear_regression( periods[ *res_direction ] + *res_period, outbreak_x, num_outbreaks, res_slope, res_intercept );
  
     if ( print_datapoints ) 
     {
         printf( "outbreak_x: " );
-        for ( j = 0; j < num_outbreaks; j++ ) printf( "%7g ", outbreak_x[j] );
+        for ( j = 0; j < num_outbreaks; j++ ) 
+            printf( "%7g ", outbreak_x[j] );
         printf( "\n" );
         printf( "outbreak_y: " );
         for ( i = 0; i < num_outbreaks; i++ ) 
         for ( j = 0; j < num_outbreaks; j++ )
-        {
             if ( data_x[ indices[j] ] == outbreak_x[i] ) printf( "%7g ", data_y[ indices[j] ] ); 
-        }
         printf( "\n" );
         printf( "approximated periods: " );
-        for ( j = 0; j < num_outbreaks; j++ ) printf( "%7g ", periods[ *res_direction ][ *res_period  + j ] * ( *res_slope ) + *( res_intercept ) );
+        logperiodic_intervals( *first_period, num_outbreaks, *direction, peak_positions );
+        for ( j = 0; j < num_outbreaks; j++ ) 
+            printf( "%7g ", peak_positions[ j ] * (*rate) + (*phase) );
         printf( "\n" );
     }
 }
