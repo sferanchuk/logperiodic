@@ -324,11 +324,11 @@ void logperiodic_approximation( double *data_x, double *data_y, int num_points, 
  
     if ( print_datapoints ) 
     {
-        printf( "outbreak_x: " );
+        printf( "outbreaks_x: " );
         for ( j = 0; j < num_outbreaks; j++ ) 
             printf( "%7g ", outbreak_x[j] );
         printf( "\n" );
-        printf( "outbreak_y: " );
+        printf( "outbreaks_y: " );
         for ( i = 0; i < num_outbreaks; i++ ) 
         for ( j = 0; j < num_outbreaks; j++ )
             if ( data_x[ indices[j] ] == outbreak_x[i] ) printf( "%7g ", data_y[ indices[j] ] ); 

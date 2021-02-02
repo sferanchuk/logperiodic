@@ -1,0 +1,44 @@
+\documentclass[a4paper]{article}
+\usepackage{graphicx}
+
+\begin{document}
+
+\begin{center}
+{\Large{}}
+\vskip 5pt
+\end{center}
+
+\section*{Introduction}
+
+{\large{\textbf{A}}}\\
+\includegraphics[width=0.9\textwidth]{fig_satellite_data.png}\\
+{\large{\textbf{B}}}\\
+\includegraphics[width=0.4\textwidth]{fig_usc_18.png}\\
+Figure 1 \textit{(A) Radiation of Sun from 2000 to 2013 recorded by ''ACRIM'' satellite; left - fitting of outbreaks to approximated periods. (B) Extracts form satellite data records deposited in Univ. of South Carolina site, radiation of Sun in 2018. Labels on axes - Higuchi fractal dimension of time-dependent distributions, in both charts.}
+
+\includegraphics[width=0.92\textwidth]{fig_sun_video.png}\\
+Figure 2 \textit{Snapshot from video record of sun flaming 15.06.2002, deposited by Swedish physicists. Digits in column - Higuchi fractal dimension for spatial axis, digits in row - approximation of fractal dimension for time axis. }
+
+\section*{Results}
+
+\includegraphics[width=0.92\textwidth]{fig_tsi.png}\\
+Figure 3 \textit{Radiation of Sun in period from November 1978 to September 2017; in bottom - radiation at Mg frequency (data from personal communications). }
+
+\section*{References}
+
+\begin{enumerate}
+
+\item Nottale, L., Scale relativity and fractal space-time: theory and applications, \textit{arxiv.org}, 2008
+
+\item Feranchuk, S., Belkova, N., et al. \textit{Limnology and Freshwater Biology}, 2018,
+
+\end{enumerate}
+
+\section*{Appendix A}
+
+
+\texttt{\small{ cat usc\_18.txt | awk -v i=0 -v b1=2458119.5 -v b13=7 '\{ if ( i == 100 \&\& substr( \$13, 1, 1 ) != "0" ) \{ s = s "," 10 * ( \$1 - b1 ) "," 500 * (substr(\$13,1,7) - b13 ); i = 0; \}; i = i+1; \} END \{ print substr( s, 2 ) \}' | ./fractal\_dimension -d\_xy }}
+
+%grep ^20 ./daya2sddeg\_ts4_Nov\_2013\_hdr.txt | awk -v b1=2000 -v b3=1360 '{ s=s "," 100 *( $1 - b1 ) "," 100 * ( $3 - b3 ); } END { print substr(s,2,length(s)); }' | ./fractal\_dimension -d\_xy 
+
+\end{document}
