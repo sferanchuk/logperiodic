@@ -22,45 +22,20 @@ double linear_regression( double *x, double *y, int dim, double *slope, double *
     return ( dim * sumxy - sumx * sumy ) / sqrt( ( dim * sumxx - sumx * sumx ) * ( dim * sumyy - sumy * sumy ) );
 }
 
-double path_length( double *data, int dim )
-{
-    double sum;
-    int i;
-    
-    sum = 0;
-    for ( i = 0; i + 1 < dim; i++ )
-    {
-        sum += fabs( data[ i + 1 ] - data[i] );
-    }
-    return sum;
-}
-
+/*
 void higuchi_dimension( double *data, int npoints, double *slope, double *intercept, double *correlation )
 {
-    double *log_path, *log_interval;
     int i, j, k, npasses;
-    int interval, slice_dim, num_logpoints;
-    double *data_slice;
+    int num_logpoints, interval;
     double d, partial_sum;
+    double log_path[1000], log_interval[1000];
   
-    if ( npoints > 100 )
-    {
-        num_logpoints = (int) ( log( npoints ) / log( 2 ) );
-        log_interval = (double*) malloc( num_logpoints * sizeof( double ) );
-        for ( i = 1; i < num_logpoints; i++ ) log_interval[i] = i * log( 2 );
-    }
-    else
-    {
-        num_logpoints = npoints - 3;
-        log_interval = (double*) malloc( num_logpoints * sizeof( double ) );
-        for ( i = 0; i < num_logpoints; i++ ) log_interval[i] = log( i + 2 );
-    }
-    log_path = (double*) malloc( num_logpoints * sizeof(double) );
+    if ( npoints > 100 ) { num_logpoints = (int) ( log( npoints ) / log( 2 ) ); for ( i = 1; i < num_logpoints; i++ ) log_interval[i] = i * log( 2 ); }
+    else { num_logpoints = npoints - 3; for ( i = 0; i < num_logpoints; i++ ) log_interval[i] = log( i + 2 ); }
     
     for ( i = 0; i < num_logpoints; i++ )
     {
         interval = (int) exp( log_interval[i] );
-        slice_dim = npoints / interval;
         partial_sum = 0;
         npasses = 0;
         for ( j = 0; j < interval; j++ )
@@ -75,9 +50,8 @@ void higuchi_dimension( double *data, int npoints, double *slope, double *interc
         log_path[i] = -log( ( partial_sum / npasses ) * ( (double)npoints / interval ) );
     }
     *correlation = linear_regression( log_interval, log_path, num_logpoints, slope, intercept );
-    free( log_interval );
-    free( log_path );
-}
+ }
+*/
 
 /*
 double path_length_xy( double *datax, double *datay, int dim )
@@ -93,124 +67,85 @@ double path_length_xy( double *datax, double *datay, int dim )
     }
     return sum;
 }
-
-double path_dimension( double *data, int npoints )
-{
-    double *log_path, *log_interval;
-    int i, j, k;
-    int interval, slice_dim, num_logpoints;
-    double *data_slice, data_min, data_max;
-    double partial_sum, fdim_slope, fdim_intercept;
-    
-    data_min = data_max = data[0]; for ( i = 1; i < npoints; i++ ) { if ( data[i] > data_max ) data_max = data[i]; if ( data[i] < data_min ) data_min = data[i]; } 
-
-    num_logpoints = (int) log( npoints );
-    log_path = (double*) malloc( num_logpoints * sizeof(double) );
-    log_interval = (double*) malloc( num_logpoints * sizeof( double ) );
-    
-    for ( i = 0; i < num_logpoints; i++ )
-    {
-        interval = (int) exp( i );
-        slice_dim = npoints / interval;
-        data_slice = (double*) malloc( slice_dim * sizeof(double) );
-        partial_sum = 0;
-        for ( j = 0; j < interval; j++ )
-        {
-            for ( k = 0; k < slice_dim; k++ )
-            {
-                data_slice[k] = data[ j + interval * k ];
-            }
-            partial_sum += path_length( data_slice, interval * ( data_max - data_min ) / npoints, slice_dim );
-        }
-        log_path[i] = log( ( partial_sum / interval ) * ( (double)npoints / ( interval * slice_dim ) ) );
-        log_interval[i] = i;
-        free( data_slice );
-    }
-    linear_regression( log_interval, log_path, num_logpoints, &fdim_slope, &fdim_intercept );
-    free( log_interval );
-    free( log_path );
-    return -fdim_slope;
-}
-
-double path_dimension_xy( double *data_x, double *data_y, int npoints )
-{
-    double *log_path, *log_interval;
-    int i, j, k;
-    int interval, slice_dim, num_logpoints;
-    double *slice_x, *slice_y, y_max, y_min, scale;
-    double partial_sum, fdim_slope, fdim_intercept;
-    
-    y_min = y_max = data_y[0]; for ( i = 1; i < npoints; i++ ) { if ( data_y[i] > y_max ) y_max = data_y[i]; if ( data_y[i] < y_min ) y_min = data_y[i]; } 
-    scale = ( y_max - y_min ) / ( data_x[ npoints - 1 ] - data_x[ 0 ] );
-    num_logpoints = (int) log( npoints );
-    log_path = (double*) malloc( num_logpoints * sizeof(double) );
-    log_interval = (double*) malloc( num_logpoints * sizeof( double ) );
-   
-    for ( i = 0; i < num_logpoints; i++ )
-    {
-        interval = (int) exp( i );
-        slice_dim = npoints / interval;
-        slice_x = (double*) malloc( slice_dim * sizeof(double) );
-        slice_y = (double*) malloc( slice_dim * sizeof(double) );
-        partial_sum = 0;
-        for ( j = 0; j < interval; j++ )
-        {
-            for ( k = 0; k < slice_dim; k++ )
-            {
-                slice_x[k] = data_x[ j + interval * k ] * scale;
-                slice_y[k] = data_y[ j + interval * k ];
-            }
-            partial_sum += path_length_xy( slice_x, slice_y, slice_dim );
-        }
-        log_path[i] = log( ( partial_sum / interval ) * ( (double)npoints / ( interval * slice_dim ) ) );
-        log_interval[i] = i;
-        free( slice_x );
-        free( slice_y );
-    }
-    linear_regression( log_interval, log_path, num_logpoints, &fdim_slope, &fdim_intercept );
-    free( log_interval );
-    free( log_path );
-    return -fdim_slope;
-}
 */
+
+void higuchi_dimension( double *data_x, double *data_y, int npoints, double *slope, double *intercept, double *correlation )
+{
+    int i, j, k, npasses;
+    int num_logpoints, interval;
+    double dx, dy, partial_sum;
+    double log_path[1000], log_interval[1000];
+  
+    if ( npoints > 100 ) 
+    { 
+        num_logpoints = (int) ( log( npoints ) / log( 2 ) ); 
+        for ( i = 0; i < num_logpoints; i++ ) log_interval[i] = i * log( 2 ); 
+    }
+    else 
+    { 
+        num_logpoints = npoints - 3; 
+        for ( i = 0; i < num_logpoints; i++ ) log_interval[i] = log( i + 2 ); 
+    }
+    
+    for ( i = 0; i < num_logpoints; i++ )
+    {
+        interval = (int) exp( log_interval[i] );
+        partial_sum = 0;
+        npasses = 0;
+        for ( j = 0; j < interval; j++ )
+        {
+            for ( k = 0; j + interval * ( k + 1 ) < npoints; k++ )
+            {
+                dx = data_x[ interval * ( k + 1 ) + j ] - data_x[ interval * k + j ];
+                dy = data_y[ interval * ( k + 1 ) + j ] - data_y[ interval * k + j ];
+                partial_sum += ( dy > 0) ? dy : -dy;/*sqrt( dx * dx + dy * dy );*/
+                npasses++;
+            }
+        }
+        log_path[i] = -log( ( partial_sum / npasses ) * ( (double)npoints / interval ) );
+    }
+    *correlation = linear_regression( log_interval, log_path, num_logpoints, slope, intercept );
+}
+
 
 void peng_dimension( double *data_x, double *data_y, int npoints, double *slope, double *intercept, double *correlation )
 {
-    double *log_path, *log_interval;
-    int i, j, k;
-    int interval, num_slices, num_logpoints;
-    double *slice_x, *slice_y;
-    double slice_slope, slice_intercept, sum_slices;
+    int i, j, k, npasses;
+    int num_logpoints, interval;
+    double slice_slope, slice_intercept, dx, dy, partial_sum;
+    double log_path[1000], log_interval[1000];
+  
+    if ( npoints > 100 ) 
+    { 
+        num_logpoints = (int) ( log( npoints ) / log( 2 ) ); 
+        for ( i = 0; i < num_logpoints; i++ ) log_interval[i] = ( i + 1 ) * log( 2 ); 
+    }
+    else 
+    { 
+        num_logpoints = npoints - 3; 
+        for ( i = 0; i < num_logpoints; i++ ) log_interval[i] = log( i + 3 ); 
+    }
     
-    num_logpoints = (int) log( npoints );
-    log_path = (double*) malloc( num_logpoints * sizeof(double) );
-    log_interval = (double*) malloc( num_logpoints * sizeof( double ) );
-    
-    for ( i = 2; i < num_logpoints; i++ )
+    for ( i = 0; i < num_logpoints; i++ )
     {
-        interval = (int) exp( i );
-        num_slices = npoints / interval;
-        slice_x = (double*) malloc( interval * sizeof(double) );
-        slice_y = (double*) malloc( interval * sizeof(double) );
-        sum_slices = 0;
-        for ( j = 0; j < num_slices; j++ )
+        interval = (int) exp( log_interval[i] );
+        partial_sum = 0;
+        npasses = 0;
+        for ( j = 0; j < interval; j++ )
         {
-            for ( k = 0; k < interval; k++ )
+            for ( k = 0; j + interval * ( k + 1 ) < npoints; k++ )
             {
-                slice_x[k] = data_x[ j * interval + k ];
-                slice_y[k] = data_y[ j * interval + k ];
+                linear_regression( data_x + j + k * interval, data_y + j + k * interval, interval, &slice_slope, &slice_intercept );
+                dx = data_x[ interval * ( k + 1 ) + j ] - data_x[ interval * k + j ];
+                dy = dx * slice_slope;  
+                if ( dy == dy )
+                    partial_sum += ( dy > 0) ? dy : -dy;
+                npasses++;
             }
-            linear_regression( slice_x, slice_y, interval, &slice_slope, &slice_intercept );
-            sum_slices += ( slice_x[ interval - 1 ] - slice_x[0] ) * ( 1 + slice_slope * slice_slope );
         }
-        log_path[i] = log( ( sum_slices / num_slices ) * ( (double)npoints / ( interval * num_slices ) ) );
-        log_interval[i] = i;
-        free( slice_x );
-        free( slice_y );
+        log_path[i] = -log( ( partial_sum / npasses ) * ( (double)npoints / interval ) );
     }
     *correlation = linear_regression( log_interval, log_path, num_logpoints, slope, intercept );
-    free( log_interval );
-    free( log_path );
 }
 
 #define MAX_OUTBREAKS 10
@@ -240,8 +175,8 @@ void logperiodic_intervals( int min_count, int num_peaks, int direction, double 
 void logperiodic_approximation( double *data_x, double *data_y, int num_points, int print_datapoints, int *direction, int *first_period,  double *rate, double *phase, double *correlation )
 {
     int i, j, k, num_samples, num_outbreaks, max_num_periods;
-    double sum, sum_sq, d, vmin, slope, intercept, eps;
-    double global_mean, local_mean, global_sd, local_sd, outbreak_bound;
+    double sum, sum_sq, d, vmin, slope, intercept;
+    double eps, global_mean, local_mean, global_sd, local_sd, outbreak_bound;
     double log_distr[ MAX_SAMPLES ], log_count[ MAX_SAMPLES ];
     int indices[ MAX_OUTBREAKS] ;
     double outbreak_x[ MAX_OUTBREAKS ], outbreak_y[ MAX_OUTBREAKS ], *ptr_x, *ptr_y;
@@ -297,11 +232,11 @@ void logperiodic_approximation( double *data_x, double *data_y, int num_points, 
     }
     
     qsort( outbreak_x, num_outbreaks, sizeof( double ), straight_compare );
+    max_num_periods = 1000;
 
-    max_num_periods = 101;
 
     vmin = -1;
-    for ( i = 0; i < max_num_periods; i++ )
+    for ( i = 1; i < max_num_periods; i *= 2 )
     {
         for ( j = 0; j < 2; j++ )
         {
@@ -406,13 +341,13 @@ int main( int argc, char **argv )
         {
             case 'h':
             {
-                higuchi_dimension( values, npoints, &res_dimension, &res_intercept, &res_correlation );
+                higuchi_dimension( xvalues, yvalues, npoints, &res_dimension, &res_intercept, &res_correlation );
                 printf( "dimension: %g\nintercept: %g\ncorrelation: %g\n", res_dimension, res_intercept, res_correlation );        
                 break;
             }
             case 'p':
             {
-                peng_dimension( xvalues, values, npoints,  &res_dimension, &res_intercept, &res_correlation );
+                peng_dimension( xvalues, yvalues, npoints,  &res_dimension, &res_intercept, &res_correlation );
                 printf( "dimension: %g\nintercept: %g\ncorrelation: %g\n", res_dimension, res_intercept, res_correlation );        
                        break;
             }
