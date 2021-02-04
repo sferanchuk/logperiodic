@@ -69,7 +69,9 @@ double path_length_xy( double *datax, double *datay, int dim )
 }
 */
 
-void higuchi_dimension( double *data_x, double *data_y, int npoints, double *slope, double *intercept, double *correlation )
+int extra_output = 0;
+
+void higuchi_dimension( double *data_x, double *data_y, int npoints, int method, double *slope, double *intercept, double *correlation )
 {
     int i, j, k, npasses;
     int num_logpoints, interval;
@@ -98,13 +100,19 @@ void higuchi_dimension( double *data_x, double *data_y, int npoints, double *slo
             {
                 dx = data_x[ interval * ( k + 1 ) + j ] - data_x[ interval * k + j ];
                 dy = data_y[ interval * ( k + 1 ) + j ] - data_y[ interval * k + j ];
-                partial_sum += ( dy > 0) ? dy : -dy;/*sqrt( dx * dx + dy * dy );*/
+                partial_sum += ( method == 0 ) ? ( ( dy > 0 ) ? dy : -dy ) : sqrt( dx * dx + dy * dy );
                 npasses++;
             }
         }
         log_path[i] = -log( ( partial_sum / npasses ) * ( (double)npoints / interval ) );
     }
     *correlation = linear_regression( log_interval, log_path, num_logpoints, slope, intercept );
+    if ( extra_output )
+    {
+        printf( "path:" );
+        for ( i = 0; i < num_logpoints; i++ ) printf( " %g,%g", log_interval[i], log_path[i] );
+        printf( "\n" );
+    }
 }
 
 
@@ -146,6 +154,12 @@ void peng_dimension( double *data_x, double *data_y, int npoints, double *slope,
         log_path[i] = -log( ( partial_sum / npasses ) * ( (double)npoints / interval ) );
     }
     *correlation = linear_regression( log_interval, log_path, num_logpoints, slope, intercept );
+    if ( extra_output )
+    {
+        printf( "path:" );
+        for ( i = 0; i < num_logpoints; i++ ) printf( " %g,%g", log_interval[i], log_path[i] );
+        printf( "\n" );
+    }
 }
 
 #define MAX_OUTBREAKS 10
@@ -172,8 +186,52 @@ void logperiodic_intervals( int min_count, int num_peaks, int direction, double 
     }
 }
 
-void logperiodic_approximation( double *data_x, double *data_y, int num_points, int print_datapoints, int *direction, int *first_period,  double *rate, double *phase, double *correlation )
+int logperiodic_approximation( double *x_coord, double *y_coord, int num_points, int method, int *first_period, int *last_period, double *correlation )
 {
+    int i, j, k;
+    int direction;
+    double peak_at_left, peak_at_right, sum_of_intervals;
+    double *updated_x_coord;
+    double t_slope, t_intercept, t_correlation, max_correlation;
+        
+    updated_x_coord = (double*) malloc( num_points * sizeof( double ) );
+ 
+    max_correlation = 0;
+    
+    for ( i = 2; i < 1000; i = ( i * 3 ) / 2 )
+    for ( j = 2; j < 100; j = ( j * 3 ) / 2 )
+    for ( direction = 0; direction <= 1; direction++ )
+    {
+        
+        peak_at_left = ( direction ) ? log( i + 1 ) : log( i + j );
+        peak_at_right = ( direction ) ? log( i + j ) : log( i + 1 );
+        for ( k = 0; k < i; k++ )
+        {
+                sum_of_intervals =  log( i + (double)( k * j ) / num_points ) - log( i + 1 );
+                updated_x_coord[k] = ( k ) ?
+                    ( x_coord[0] + ( x_coord[k] - x_coord[0] ) * sum_of_intervals / ( peak_at_right - peak_at_left ) ) :
+                    ( x_coord[ num_points - 1 ] - ( x_coord[ num_points - 1 ] - x_coord[k] ) * sum_of_intervals / ( peak_at_left - peak_at_right ) );
+        }
+        if ( method == 0 ) peng_dimension( updated_x_coord, y_coord, num_points, &t_slope, &t_intercept, &t_correlation );
+        else higuchi_dimension( updated_x_coord, y_coord, num_points, 1, &t_slope, &t_intercept, &t_correlation );
+        /*if ( extra_output ) printf( "%d %d %g %g\n", i, j, t_slope, t_correlation );*/
+        if ( t_correlation > max_correlation )
+        {
+            max_correlation = t_correlation;
+            *first_period = ( direction ) ? i : i + j;
+            *last_period = ( direction ) ? i + j : i;
+            *correlation = max_correlation;
+            
+        }
+    }
+    free( updated_x_coord );
+
+    if ( method == 0 ) peng_dimension( x_coord, y_coord, num_points, &t_slope, &t_intercept, &t_correlation );
+    else higuchi_dimension( x_coord, y_coord, num_points, 1, &t_slope, &t_intercept, &t_correlation );
+    return ( t_correlation < max_correlation );
+}
+
+    /*
     int i, j, k, num_samples, num_outbreaks, max_num_periods;
     double sum, sum_sq, d, vmin, slope, intercept;
     double eps, global_mean, local_mean, global_sd, local_sd, outbreak_bound;
@@ -275,6 +333,15 @@ void logperiodic_approximation( double *data_x, double *data_y, int num_points, 
         printf( "\n" );
     }
 }
+*/
+
+    
+int option_selected( const char *key, int argc, char **argv )
+{
+    int i;
+    for ( i = 1; i < argc; i++ ) if ( strcmp( argv[i], key ) == 0 ) return 1;
+    return 0;
+}
 
 int main( int argc, char **argv )
 {
@@ -285,13 +352,12 @@ int main( int argc, char **argv )
     int npoints = 0;
     double *values = 0, *xvalues = 0, *yvalues = 0;
     double *ptr;
-    int print_outbreaks;
-    double res_correlation, res_dimension, res_intercept;
-    int res_direction, res_period;
-    
+    double correlation, dimension, intercept;
+    int first_period, last_period, credibility;
+        
     if ( argc == 1 ) 
     { 
-        printf( "arguments: -h : higuchi f.d.; -p, p_xy : peng f.d.; -c, -c_xy, -d, -d_xy : log-periodic approximation, -d prints extra output.\nstdin: input data, comma-separated, in one line\n" ); return 1;
+        printf( "-h: \"canonical\" higuchi f.d; -hm: higuchi-style f.d. with variable x coord;\n-p: peng f.d; -c,-d: log-periodic approximation;\noptional keys: -xy : data in x-y representation; -v extra output.\nstdin: input data, comma-separated, in one line.\n" ); return 1;
     }
     
     p=buf;
@@ -318,15 +384,10 @@ int main( int argc, char **argv )
         }
     }
     values[ npoints++ ] = atof( buf );
+    
     if ( npoints > 0 && argv[1][0] == '-' ) 
     {
-        if ( strcmp( argv[1]+2, "_xy" ) != 0 )
-        {
-            xvalues = (double*) malloc( sizeof( double ) * npoints );
-            for ( i = 0; i < npoints; i++ ) xvalues[i] = i;
-            yvalues = values;
-        }
-        else
+        if ( option_selected( "-xy", argc, argv ) )
         {
             npoints /= 2;
             xvalues = (double*) malloc( sizeof( double ) * npoints );
@@ -337,30 +398,36 @@ int main( int argc, char **argv )
                 yvalues[i] = values[ 2 * i + 1 ];
             }
         }
+        else
+        {
+            xvalues = (double*) malloc( sizeof( double ) * npoints );
+            for ( i = 0; i < npoints; i++ ) xvalues[i] = i;
+            yvalues = values;
+        }
+        extra_output = option_selected( "-v", argc, argv );
         switch ( argv[1][1] )
         {
             case 'h':
             {
-                higuchi_dimension( xvalues, yvalues, npoints, &res_dimension, &res_intercept, &res_correlation );
-                printf( "dimension: %g\nintercept: %g\ncorrelation: %g\n", res_dimension, res_intercept, res_correlation );        
+                higuchi_dimension( xvalues, yvalues, npoints, ( argv[1][2] == 'm' ) ? 1 : 0, &dimension, &intercept, &correlation );
+                printf( "dimension: %g\nintercept: %g\ncorrelation: %g\n", dimension, intercept, correlation );        
                 break;
             }
             case 'p':
             {
-                peng_dimension( xvalues, yvalues, npoints,  &res_dimension, &res_intercept, &res_correlation );
-                printf( "dimension: %g\nintercept: %g\ncorrelation: %g\n", res_dimension, res_intercept, res_correlation );        
-                       break;
+                peng_dimension( xvalues, yvalues, npoints,  &dimension, &intercept, &correlation );
+                printf( "dimension: %g\nintercept: %g\ncorrelation: %g\n", dimension, intercept, correlation );        
+                break;
             }
             case 'c':
             case 'd':
             {
-                print_outbreaks = ( argv[1][1] == 'c' ) ? 0 : 1;
-                logperiodic_approximation( xvalues, yvalues, npoints, print_outbreaks, &res_direction, &res_period, &res_dimension, &res_intercept, &res_correlation );
-                printf( "direction: %s\nperiod in beginning: %d\nrate: %g\nphase: %g\ncorrelation: %g\n", ( res_direction == 0 ) ? "expansion from past" : "contraction to future", res_period, res_dimension, res_intercept, res_correlation );          
+                credibility = logperiodic_approximation( xvalues, yvalues, npoints, argv[1][1] == 'c', &first_period, &last_period, &correlation );
+                printf( "credibility: %s\ndirection: %s\nperiod in beginning: %d\nperiod in end: %d\ncorrelation: %g\n", credibility ? "sufficient" : "insufficient", ( first_period < last_period ) ? "expansion from past" : "contraction to future", first_period, last_period, correlation );          
                 break;
             }
             default:
-                printf( "incorrect option key %s\n", argv[1] );
+                printf( "incorrect argument %s\n", argv[1] );
                 break;
         }
     }
