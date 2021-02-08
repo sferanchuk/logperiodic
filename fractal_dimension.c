@@ -247,6 +247,20 @@ const char *option_parameter( const char *key, int argc, char **argv )
     return 0;
 }
 
+/*
+const double *array_to_compare;
+int compare_func( const void *p1, const void *p2 ) { };
+
+void sort_xy( double *x_coord, double *y_coord, int npoints )
+{
+    int i;
+    int *order = (int*) malloc( npoints * sizeof( int ) );
+    
+    for ( i = 0; i < npoints; i++ ) order[i] = i;
+    array_to_compare = x_coord;
+}
+*/
+
 int main( int argc, char **argv )
 {
     FILE *ifile = stdin;

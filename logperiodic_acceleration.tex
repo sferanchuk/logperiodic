@@ -5,25 +5,31 @@
 
 \begin{center}
 {\Large{}}
-\vskip 5pt
+\vskip 12pt
 \end{center}
 
 \section*{Introduction}
 
 {\large{\textbf{A}}}\\
-\includegraphics[width=0.9\textwidth]{fig_satellite_data.png}\\
+\includegraphics[width=0.6\textwidth]{fig_intro_acrim3.png}\\
+\vskip 12pt
 {\large{\textbf{B}}}\\
-\includegraphics[width=0.4\textwidth]{fig_usc_18.png}\\
-Figure 1 \textit{(A) Radiation of Sun from 2000 to 2013 recorded by ''ACRIM'' satellite; left - fitting of outbreaks to approximated periods. (B) Extracts form satellite data records deposited in Univ. of South Carolina site, radiation of Sun in 2018. Labels on axes - Higuchi fractal dimension of time-dependent distributions, in both charts. Axes in bottom - positions of detected outbreaks and peaks of approximating log-periodic dependency.}
+\includegraphics[width=0.4\textwidth]{fig_intro_usc18.png}\\
+\vskip 12pt
+Figure 1 \textit{(A) Radiation of Sun from 2000 to 2013 recorded by ''ACRIM3'' satellite; (B) Extracts form satellite data records of photon flux deposited in Univ. of South Carolina site, radiation of Sun in 2018.}
 
+\newpage
 \includegraphics[width=0.9\textwidth]{fig_sun_video.png}\\
+\vskip 12pt
 Figure 2 \textit{Snapshot from video record of sun flaming 15.06.2002, deposited by Swedish physicists. Digits in column - Higuchi fractal dimension for spatial axis, digits in row - approximation of fractal dimension for time axis. }
 
+\newpage
 \section*{Methods}
 
 \includegraphics[width=0.99\textwidth]{fig_methods.png}\\
-
+\vskip 12pt
 Figure 3 \textit{Illustration of attempts to guess a presence of the log-periodic dependency.}
+\vskip 12pt
 
 \begin{tabular}{cccccc}
 \hline
@@ -45,18 +51,20 @@ fit in part & direction & acceleration & decceleration & & \\
 \hline
 \end{tabular}
 
+\newpage
 \section*{Results}
 
 \includegraphics[width=0.92\textwidth]{fig_tsi.png}\\
-\vskip 24pt
-Figure 4 \textit{Radiation of Sun in period from November 1978 to September 2017; in bottom - radiation at Mg frequency. }
+\vskip 12pt
+Figure 4 \textit{Radiation of Sun in period from November 1978 to September 2017; in bottom - radiation at MgII frequency. }
 
 \newpage
 {\large{\textbf{A}}}\\
 \includegraphics[width=0.99\textwidth]{fig_baikal_longseries.png}\\
-\vskip 24pt
+\vskip 12pt
 {\large{\textbf{B}}}\\
-\includegraphics[width=0.6\textwidth]{fig_baikal_shortseries.png}\\
+\includegraphics[width=0.5\textwidth]{fig_baikal_shortseries.png}\\
+\vskip 12pt
 Figure 5 \textit{Temperature of water in Baikal (A) series from May 2010 to October 2016; (B) series from May 2017 to September 2018. }
 
 \section*{References}
@@ -69,11 +77,14 @@ Figure 5 \textit{Temperature of water in Baikal (A) series from May 2010 to Octo
 
 \end{enumerate}
 
+\newpage
 \section*{Appendix A}
 
 
 \texttt{\small{ cat usc\_18.txt | awk -v i=0 -v b1=2458119.5 -v b13=7 '\{ if ( i == 100 \&\& substr( \$13, 1, 1 ) != "0" ) \{ s = s "," 10 * ( \$1 - b1 ) "," 500 * (substr(\$13,1,7) - b13 ); i = 0; \}; i = i+1; \} END \{ print substr( s, 2 ) \}' | ./fractal\_dimension -d\_xy }}
 
 %grep ^20 ./daya2sddeg\_ts4_Nov\_2013\_hdr.txt | awk -v b1=2000 -v b3=1360 '{ s=s "," 100 *( $1 - b1 ) "," 100 * ( $3 - b3 ); } END { print substr(s,2,length(s)); }' | ./fractal\_dimension -d\_xy 
+
+%echo "$s_beg" >../figure_sources/fig_baikal_shortseries.html;cat ../data_files/baikal_shortseries.txt | while read line; do a1=${line:0:10};a2=${line:11:5};n1=`echo "($a1-$d_beg)*0.00001" | bc`;n2=`echo "$a2*10" | bc`; s="+\" $n1,$n2\""; echo "$s" >>../figure_sources/fig_baikal_shortseries.html; done; echo "$s_end" >>../figure_sources/fig_baikal_shortseries.html;
 
 \end{document}
