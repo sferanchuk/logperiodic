@@ -11,12 +11,12 @@
 \section*{Introduction}
 
 {\large{\textbf{A}}}\\
-\includegraphics[width=0.6\textwidth]{fig_intro_acrim3.png}\\
-\vskip 12pt
-{\large{\textbf{B}}}\\
 \includegraphics[width=0.4\textwidth]{fig_intro_usc18.png}\\
 \vskip 12pt
-Figure 1 \textit{(A) Radiation of Sun from 2000 to 2013 recorded by ''ACRIM3'' satellite; (B) Extracts form satellite data records of photon flux deposited in Univ. of South Carolina site, radiation of Sun in 2018.}
+{\large{\textbf{B}}}\\
+\includegraphics[width=0.6\textwidth]{fig_intro_acrim3.png}\\
+\vskip 12pt
+Figure 1 \textit{(A) Extracts form satellite data records of photon flux deposited in Univ. of South Carolina site, radiation of Sun in 2018; (B) Radiation of Sun from 2000 to 2013 recorded by ''ACRIM3'' satellite.}
 
 \newpage
 \includegraphics[width=0.9\textwidth]{fig_sun_video.png}\\
@@ -26,28 +26,34 @@ Figure 2 \textit{Snapshot from video record of sun flaming 15.06.2002, deposited
 \newpage
 \section*{Methods}
 
-\includegraphics[width=0.99\textwidth]{fig_methods.png}\\
+{\large{\textbf{A}}}\\
+\includegraphics[width=0.99\textwidth]{fig_methods_usc18.png}\\
 \vskip 12pt
-Figure 3 \textit{Illustration of attempts to guess a presence of the log-periodic dependency.}
+{\large{\textbf{B}}}\\
+\includegraphics[width=0.99\textwidth]{fig_methods_acrim3.png}\\
+\vskip 12pt
+Figure 3 \textit{Illustrations of attempts to guess a presence of the log-periodic dependency (A) Uniform distribution - chart in fig. 1A (B) Periodic bursts - chart in fig 1B, two talils in separate.}
 \vskip 12pt
 
-\begin{tabular}{cccccc}
+Table 1 \textit{Supplement to figure 3 - results of fitting of log-periodicity in log-log distributions}
+\vskip 12pt
+\begin{tabular}{cccccccccc}
 \hline
- & & test 1 & & test 2 & \\
- & & method 1 & method 2 & & \\
+ & & usc\_18        &           &           & acrim3-1  &           & acrim3-2  &           \\
+ & & method 1       & method 2  &           &           &           &           &           \\
 \hline
- plain& dimension & 0.577973 & 0.579382 & 0.49923 & 0.519842 \\
- & correlation & -0.983925 & -0.969044 & -0.947012 & -0.925539 \\
+ plain& dimension   & 0.577973  & 0.579382  & 0.691307  & 0.747027  & 0.598869  & 0.645797  \\
+ & correlation      & -0.983925 & -0.969044 & -0.984111 & -0.97212  & -0.974277 & -0.959029 \\
 \hline
-fit in full & direction& decceleration & decceleration & & \\
-    & critical time & -711 & -141 & & \\
-    & dimension & 0.686096 & 0.880372 & & \\
-    & correlation & -0.992609 & -0.996231 & & \\
+fit in full & direction& decc.  & decc.     & accel.    & accel.    & accel.    & accel.    \\
+    & critical time & -711      & -141      & +318      & +474      & +6        & +8        \\
+    & dimension     & 0.686096  & 0.880372  & 0.858975  & 1.07331   & 0.881265  & 0.788433  \\
+    & correlation   & -0.992609 & -0.996231 & -0.998645 & -0.998409 & -0.998075 & -0.979409 \\
 \hline
-fit in part & direction & acceleration & decceleration & & \\
-    & critical time &+2 &-141 & & \\
-    & dimension & 0.677549 & 0.949008 & & \\
-    & correlation & -0.992127 & 0.996914 & &\\
+fit in part & direction & accel. & decc.    & decc.     & accel.    & accel.    & accel.    \\
+    & critical time & +2        & -141      & -474      & +2        & +63       & +3        \\
+    & dimension     & 0.677549  & 0.949008  & 0.822429  & 0.949565  & 0.599305  & 0.974975  \\
+    & correlation   & -0.992127 & 0.996914  & -0.996929 & -0.99992  & -0.995057 & -0.999909 \\
 \hline
 \end{tabular}
 
