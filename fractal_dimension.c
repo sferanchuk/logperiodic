@@ -24,24 +24,20 @@ double linear_regression( double *x, double *y, int dim, double *slope, double *
 
 #define MAX_INTERVALS 1000
 
-void higuchi_dimension( double *data_x, double *data_y, int npoints, int method, int interval_min, int interval_max, int extra_output, double *slope, double *intercept, double *correlation )
+void higuchi_dimension( double *data_x, double *data_y, int npoints, int method, int interval_min, int interval_max, int extra_output, int linincr, double *slope, double *intercept, double *correlation )
 {
     int i, j, k, npasses;
     int num_intervals, interval;
     double dx, dy, partial_sum;
     double path[ MAX_INTERVALS ], intervals[ MAX_INTERVALS ], log_path[ MAX_INTERVALS ], log_intervals[ MAX_INTERVALS ];
     
-    if ( npoints > 100000 ) 
+    if ( linincr ) 
     { 
-        for ( i = ( ( interval_min == 0 ) ? 3 : interval_min ), num_intervals = 0; i < npoints && ( interval_max == 0 || i < interval_max ); i = i * 2, num_intervals++ ) intervals[ num_intervals] = i; 
-    }
-    else if ( npoints > 100 ) 
-    { 
-        for ( i = ( ( interval_min == 0 ) ? 2 : interval_min ), num_intervals = 0; i < npoints && ( interval_max == 0 || i < interval_max ); i = ( 3 * i ) / 2, num_intervals++ ) intervals[ num_intervals] = i; 
+       for ( i = ( ( interval_min == 0 ) ? 2 : interval_min ), num_intervals = 0; i < npoints && num_intervals < MAX_INTERVALS && ( interval_max == 0 || i < interval_max ); i++, num_intervals++ ) intervals[ num_intervals ] = i; 
     }
     else 
     { 
-        for ( i = ( ( interval_min == 0 ) ? 2 : interval_min ), num_intervals = 0; i < npoints && ( interval_max == 0 || i < interval_max ); i++, num_intervals++ ) intervals[ num_intervals ] = i; 
+        for ( i = ( ( interval_min == 0 ) ? 2 : interval_min ), num_intervals = 0; i < npoints && ( interval_max == 0 || i < interval_max ); i = ( 3 * i ) / 2, num_intervals++ ) intervals[ num_intervals] = i; 
     }
 
     for ( i = 0; i < num_intervals; i++ )
@@ -76,24 +72,20 @@ void higuchi_dimension( double *data_x, double *data_y, int npoints, int method,
     }
 }
 
-void peng_dimension( double *data_x, double *data_y, int npoints, int method, int interval_min, int interval_max, int extra_output, double *slope, double *intercept, double *correlation )
+void peng_dimension( double *data_x, double *data_y, int npoints, int method, int interval_min, int interval_max, int extra_output, int linincr, double *slope, double *intercept, double *correlation )
 {
     int i, j, k, npasses;
     int num_intervals, interval;
     double slice_slope, slice_intercept, dx, dy, partial_sum;
     double path[ MAX_INTERVALS ], intervals[ MAX_INTERVALS ], log_path[ MAX_INTERVALS ], log_intervals[ MAX_INTERVALS ];
   
-    if ( npoints > 100000 ) 
+    if ( linincr ) 
     { 
-        for ( i = ( ( interval_min == 0 ) ? 3 : interval_min ), num_intervals = 0; i < npoints && ( interval_max == 0 || i < interval_max ); i = i * 2, num_intervals++ ) intervals[ num_intervals] = i; 
-    }
-    else if ( npoints > 100 ) 
-    { 
-        for ( i = ( ( interval_min == 0 ) ? 3 : interval_min ), num_intervals = 0; i < npoints && ( interval_max == 0 || i < interval_max ); i = ( 3 * i ) / 2, num_intervals++ ) intervals[ num_intervals] = i; 
+       for ( i = ( ( interval_min == 0 ) ? 3 : interval_min ), num_intervals = 0; i < npoints && num_intervals < MAX_INTERVALS && ( interval_max == 0 || i < interval_max ); i++, num_intervals++ ) intervals[ num_intervals ] = i; 
     }
     else 
     { 
-        for ( i = ( ( interval_min == 0 ) ? 3 : interval_min ), num_intervals = 0; i < npoints && ( interval_max == 0 || i < interval_max ); i++, num_intervals++ ) intervals[ num_intervals ] = i; 
+        for ( i = ( ( interval_min == 0 ) ? 3 : interval_min ), num_intervals = 0; i < npoints && ( interval_max == 0 || i < interval_max ); i = ( 3 * i ) / 2, num_intervals++ ) intervals[ num_intervals] = i; 
     }
     
     for ( i = 0; i < num_intervals; i++ )
@@ -109,8 +101,10 @@ void peng_dimension( double *data_x, double *data_y, int npoints, int method, in
                 dx = data_x[ interval * ( k + 1 ) + j ] - data_x[ interval * k + j ];
                 dy = dx * slice_slope;  
                 if ( dy == dy )
+                {
                     partial_sum += ( method == 0 ) ? ( ( dy > 0 ) ? dy : -dy ) : sqrt( dx * dx + dy * dy );
-                npasses++;
+                    npasses++;
+                }
             }
         }
         path[i] = ( partial_sum / npasses ) * ( (double)npoints / interval );
@@ -154,7 +148,33 @@ void logperiodic_intervals( int min_count, int num_peaks, int direction, double 
     }
 }
 
-int logperiodic_approximation( double *x_coord, double *y_coord, int num_points, int method, int interval_min, int interval_max, int extra_output, int *first_period, int *last_period,  double *slope, double *intercept, double *correlation )
+double averaging( double *x_coord, double *y_coord, int num_points, int method, int interval_min, int interval_max, int extra_output, int linincr, int num_parts, double *avg_slope, double *avg_intercept )
+{
+    int i, part_size;
+    double t_slope, t_intercept, t_correlation;
+    double sum_slope, sum_intercept, sum_squares;
+    
+    sum_slope = 0;
+    sum_intercept = 0;
+    sum_squares = 0;
+    part_size = num_points / num_parts;
+    for ( i = 0; i < num_parts; i++ )
+    {
+        if ( method == 0 ) 
+            peng_dimension( x_coord + i * part_size, y_coord + i * part_size, part_size, 1, interval_min, interval_max, extra_output, linincr, &t_slope, &t_intercept, &t_correlation );
+        else 
+            higuchi_dimension( x_coord + i * part_size, y_coord + i * part_size, part_size, 1, interval_min, interval_max, extra_output, linincr, &t_slope, &t_intercept, &t_correlation );
+        sum_slope += t_slope;
+        sum_intercept += t_intercept;
+        sum_squares += t_slope * t_slope;
+    }
+    *avg_slope = sum_slope / num_parts;
+    *avg_intercept = sum_intercept / num_parts;
+    return sqrt( sum_squares / num_parts - ( (*avg_slope) * (*avg_slope) ) );
+
+}
+
+int logperiodic_approximation( double *x_coord, double *y_coord, int num_points, int method, int interval_min, int interval_max, int extra_output, int linincr, int *first_period, int *last_period,  double *slope, double *intercept, double *correlation )
 {
     int i, j, k;
     int direction;
@@ -183,9 +203,9 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
                 }
                 
                 if ( method == 0 ) 
-                    peng_dimension( updated_x_coord, y_coord, num_points, 1, interval_min, interval_max, 0, &t_slope, &t_intercept, &t_correlation );
+                    peng_dimension( updated_x_coord, y_coord, num_points, 1, interval_min, interval_max, 0, linincr, &t_slope, &t_intercept, &t_correlation );
                 else 
-                    higuchi_dimension( updated_x_coord, y_coord, num_points, 1, interval_min, interval_max, 0, &t_slope, &t_intercept, &t_correlation );
+                    higuchi_dimension( updated_x_coord, y_coord, num_points, 1, interval_min, interval_max, 0, linincr, &t_slope, &t_intercept, &t_correlation );
                 
                 if ( extra_output ) printf( " %d,%g", j, t_correlation );
                 
@@ -204,8 +224,8 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
         }
     }
 
-    if ( method == 0 ) peng_dimension( x_coord, y_coord, num_points, 1, interval_min, interval_max, extra_output, &t_slope, &t_intercept, &t_correlation );
-    else higuchi_dimension( x_coord, y_coord, num_points, 1, interval_min, interval_max, extra_output, &t_slope, &t_intercept, &t_correlation );
+    if ( method == 0 ) peng_dimension( x_coord, y_coord, num_points, 1, interval_min, interval_max, extra_output, linincr, &t_slope, &t_intercept, &t_correlation );
+    else higuchi_dimension( x_coord, y_coord, num_points, 1, interval_min, interval_max, extra_output, linincr, &t_slope, &t_intercept, &t_correlation );
 
     if ( extra_output )
     {
@@ -224,15 +244,15 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
         }
         
         if ( method == 0 ) 
-            peng_dimension( updated_x_coord, y_coord, num_points, 1, interval_min, interval_max, 1, &t_slope, &t_intercept, &t_correlation );
+            peng_dimension( updated_x_coord, y_coord, num_points, 1, interval_min, interval_max, 1, linincr, &t_slope, &t_intercept, &t_correlation );
         else 
-            higuchi_dimension( updated_x_coord, y_coord, num_points, 1, interval_min, interval_max, 1, &t_slope, &t_intercept, &t_correlation );
+            higuchi_dimension( updated_x_coord, y_coord, num_points, 1, interval_min, interval_max, 1, linincr, &t_slope, &t_intercept, &t_correlation );
         
     }
     free( updated_x_coord );
     return ( t_correlation > min_correlation );
 }
-   
+
 int option_selected( const char *key, int argc, char **argv )
 {
     int i;
@@ -268,15 +288,15 @@ int main( int argc, char **argv )
     char *p;
     int i, maxnpoints = 0;
     int npoints = 0;
-    int interval_min, interval_max, extra_output;
+    int interval_min, interval_max, extra_output, linincr;
     double *values = 0, *xvalues = 0, *yvalues = 0;
     double *ptr;
-    double slope, intercept, correlation = 0;
+    double slope, intercept, correlation = 0, variation;
     int first_period = 0, last_period = 0, credibility;
         
     if ( argc == 1 ) 
     { 
-        printf( "Selection of algorithm:\n-h: \"canonical\" higuchi f.d;\n-hm: higuchi-style f.d. with variable x coord;\n-p,-pm: peng f.d; \n-c,-d: log-periodic approximation;\nOptional keys:\n-xy: data in x-y representation;\n-max: upper limit of intervals in logarithmic dependency, in integer units;\n-v: extra output.\nstdin: input data, comma-separated.\n" ); return 1;
+        printf( "Selection of algorithm:\n\n-h    \"canonical\" Higuchi f.d;\n-hm   f.d for sum of hypotenuses;\n-lh   fitting of log-periodicity\n\n-p    \"canonical\" Peng f.d\n-pm   f.d for sum of lengths\n-lp   fitting of log-periodicity\n\n-ap, -ah <n> averaging\nOptional keys:\n-xy: data in x-y representation;\n-max,-min: upper and lower limits of intervals in logarithmic dependency, in integer units;\n-v: extra output;\n-linincr: linear increment of x-coordinate in log-log dependency.\n\nstdin: input data, comma-separated.\n" ); return 1;
     }
     
     p=buf;
@@ -324,26 +344,32 @@ int main( int argc, char **argv )
             yvalues = values;
         }
         extra_output = option_selected( "-v", argc, argv );
+        linincr = option_selected( "-linincr", argc, argv );
         interval_min = ( option_selected( "-min", argc, argv ) ? atoi( option_parameter( "-min", argc, argv ) ) : 0 );
         interval_max = ( option_selected( "-max", argc, argv ) ? atoi( option_parameter( "-max", argc, argv ) ) : 0 );
         switch ( argv[1][1] )
         {
             case 'h':
             {
-                higuchi_dimension( xvalues, yvalues, npoints, ( argv[1][2] == 'm' ) ? 1 : 0, interval_min, interval_max, extra_output, &slope, &intercept, &correlation );
+                higuchi_dimension( xvalues, yvalues, npoints, ( argv[1][2] == 'm' ) ? 1 : 0, interval_min, interval_max, extra_output, linincr, &slope, &intercept, &correlation );
                 printf( "dimension: %g\nintercept: %g\ncorrelation: %g\n", -slope, intercept, correlation );        
                 break;
             }
             case 'p':
             {
-                peng_dimension( xvalues, yvalues, npoints, ( argv[1][2] == 'm' ) ? 1 : 0, interval_min, interval_max, extra_output, &slope, &intercept, &correlation );
+                peng_dimension( xvalues, yvalues, npoints, ( argv[1][2] == 'm' ) ? 1 : 0, interval_min, interval_max, extra_output, linincr, &slope, &intercept, &correlation );
                 printf( "dimension: %g\nintercept: %g\ncorrelation: %g\n", -slope, intercept, correlation );        
                 break;
             }
-            case 'c':
-            case 'd':
+            case 'a':
             {
-                credibility = logperiodic_approximation( xvalues, yvalues, npoints, argv[1][1] == 'c', interval_min, interval_max, extra_output, &first_period, &last_period, &slope, &intercept, &correlation );
+                variation = averaging( xvalues, yvalues, npoints, argv[1][2] == 'h', interval_min, interval_max, extra_output, linincr, atoi( argv[2] ), &slope, &intercept );
+                printf( "dimension: %g\nintercept: %g\nvariation of dimension: %g\n", -slope, intercept, variation );                 
+                break;
+            }
+            case 'l':
+            {
+                credibility = logperiodic_approximation( xvalues, yvalues, npoints, argv[1][2] == 'h', interval_min, interval_max, extra_output, linincr, &first_period, &last_period, &slope, &intercept, &correlation );
                 printf( "credibility: %s\ndirection: %s\nperiod in beginning: %d\nperiod in end: %d\ndimension: %g\nintercept: %g\ncorrelation: %g\n", credibility ? "sufficient" : "insufficient", ( first_period < last_period ) ? "expansion from past" : "contraction to future", first_period, last_period, -slope, intercept, correlation );          
                 break;
             }
