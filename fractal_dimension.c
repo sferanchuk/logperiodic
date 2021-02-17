@@ -184,12 +184,13 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
         
     updated_x_coord = (double*) malloc( num_points * sizeof( double ) );
  
-    if ( extra_output ) printf( "Correlation:\n" );
+    if ( extra_output ) printf( "Correlation\n" );
     for ( direction = 0; direction <= 1; direction++ )
     {
+        if ( extra_output ) printf( "%s:\n", ( direction == 0 ) ? "forwards" : "backwards" );
         for ( i = 2; i < 1000; i = ( i * 3 ) / 2 )
         {
-            if ( extra_output ) printf( "[min_period=%d,%s]\n", i, ( direction == 0 ) ? "forwards" : "backwards" );
+            if ( extra_output ) printf( "%d: {", i );
             for ( j = 2; j < 100; j = ( j * 3 ) / 2 )
             {
                 peak_at_left = ( direction ) ? log( i + 1 ) : log( i + j );
@@ -207,7 +208,7 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
                 else 
                     higuchi_dimension( updated_x_coord, y_coord, num_points, 1, interval_min, interval_max, 0, linincr, &t_slope, &t_intercept, &t_correlation );
                 
-                if ( extra_output ) printf( " %d,%g", j, t_correlation );
+                if ( extra_output ) printf( "%d:%g,", j, t_correlation );
                 
                 if ( t_correlation < min_correlation )
                 {
@@ -220,7 +221,7 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
                     
                 }
             }
-            if ( extra_output ) printf( "\n" );
+            if ( extra_output ) printf( "},\n" );
         }
     }
 
