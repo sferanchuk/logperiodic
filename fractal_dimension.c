@@ -131,23 +131,6 @@ static double abs_diff( double p1, double p2 ) { if ( p1 == p2 ) return 0; retur
 static int straight_compare( const void *p1, const void *p2 ) { if ( *(double*)p1 == *(double*)p2 ) return 0; return ( *(double*)p1 - *(double*)p2 > 0 ) ? 1 : -1; } 
 static int reversed_compare( const void *p1, const void *p2 ) { if ( *(double*)p1 == *(double*)p2 ) return 0; return ( *(double*)p1 - *(double*)p2 > 0 ) ? -1 : 1; } 
 
-void logperiodic_intervals( int min_count, int num_peaks, int direction, double *peak_positions )
-{
-    int i;
-    double peak_at_left, peak_at_right, sum_of_intervals;
-    
-    peak_at_left = ( direction ) ? log( min_count + 1 ) : log( min_count + num_peaks );
-    peak_at_right = ( direction ) ? log( min_count + num_peaks ) : log( min_count + 1 );
-    
-    for ( i = 0; i < num_peaks; i++ ) 
-    {
-        sum_of_intervals = ( log( min_count + i + 1 ) - log( min_count + 1 ) );
-        peak_positions[ i ] = ( direction ) ? 
-            ( sum_of_intervals / ( peak_at_right - peak_at_left ) ) :
-            ( 1 - sum_of_intervals / ( peak_at_left - peak_at_right ) );
-    }
-}
-
 double averaging( double *x_coord, double *y_coord, int num_points, int method, int interval_min, int interval_max, int extra_output, int linincr, int num_parts, double *avg_slope, double *avg_intercept )
 {
     int i, part_size;
@@ -174,33 +157,51 @@ double averaging( double *x_coord, double *y_coord, int num_points, int method, 
 
 }
 
+/*
+void logperiodic_intervals( int min_count, int num_peaks, int direction, double *peak_positions )
+{
+    int i;
+    double peak_at_left, peak_at_right, sum_of_intervals;
+    
+    peak_at_left = ( direction ) ? log( min_count + 1 ) : log( min_count + num_peaks );
+    peak_at_right = ( direction ) ? log( min_count + num_peaks ) : log( min_count + 1 );
+    
+    for ( i = 0; i < num_peaks; i++ ) 
+    {
+        sum_of_intervals = ( log( min_count + i + 1 ) - log( min_count + 1 ) );
+        peak_positions[ i ] = ( direction ) ? 
+            ( sum_of_intervals / ( peak_at_right - peak_at_left ) ) :
+            ( 1 - sum_of_intervals / ( peak_at_left - peak_at_right ) );
+    }
+}
+*/
+
 int logperiodic_approximation( double *x_coord, double *y_coord, int num_points, int method, int interval_min, int interval_max, int extra_output, int linincr, int *first_period, int *last_period,  double *slope, double *intercept, double *correlation )
 {
     int i, j, k;
     int direction;
-    double peak_at_left, peak_at_right, sum_of_intervals;
+    double lp_period, observation_period, x_pos, lp_pos, updated_x_pos;
     double *updated_x_coord;
     double t_slope, t_intercept, t_correlation, min_correlation = 0;
         
     updated_x_coord = (double*) malloc( num_points * sizeof( double ) );
- 
+    observation_period = x_coord[ num_points - 1 ] - x_coord[0];
     if ( extra_output ) printf( "Correlation\n" );
     for ( direction = 0; direction <= 1; direction++ )
     {
-        if ( extra_output ) printf( "%s:\n", ( direction == 0 ) ? "forwards" : "backwards" );
+        if ( extra_output ) printf( "{ /*%s*/\n", ( direction == 0 ) ? "forwards" : "backwards" );
         for ( i = 2; i < 1000; i = ( i * 3 ) / 2 )
         {
             if ( extra_output ) printf( "%d: {", i );
             for ( j = 2; j < 100; j = ( j * 3 ) / 2 )
             {
-                peak_at_left = ( direction ) ? log( i + 1 ) : log( i + j );
-                peak_at_right = ( direction ) ? log( i + j ) : log( i + 1 );
-                for ( k = 0; k < i; k++ )
+                lp_period = log( i + j + 1 ) - log( i + 1 );
+                for ( k = 0; k < num_points; k++ )
                 {
-                        sum_of_intervals =  log( i + (double)( k * j ) / num_points ) - log( i + 1 );
-                        updated_x_coord[k] = ( k ) ?
-                            ( x_coord[0] + ( x_coord[k] - x_coord[0] ) * sum_of_intervals / ( peak_at_right - peak_at_left ) ) :
-                            ( x_coord[ num_points - 1 ] - ( x_coord[ num_points - 1 ] - x_coord[k] ) * sum_of_intervals / ( peak_at_left - peak_at_right ) );
+                    x_pos = ( direction ) ? ( x_coord[k] - x_coord[0] ) : ( x_coord[ num_points - 1 ] - x_coord[k] );
+                    lp_pos = log( i + 1 + j * x_pos / observation_period ) - log( i + 1 );
+                    updated_x_pos = x_pos * ( lp_pos / lp_period );
+                    updated_x_coord[k] = ( direction ) ? ( x_coord[0] + updated_x_pos ) : ( x_coord[ num_points - 1 ] - updated_x_pos );
                 }
                 
                 if ( method == 0 ) 
@@ -223,6 +224,7 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
             }
             if ( extra_output ) printf( "},\n" );
         }
+        if ( extra_output ) printf( "},\n" );
     }
 
     if ( method == 0 ) peng_dimension( x_coord, y_coord, num_points, 1, interval_min, interval_max, extra_output, linincr, &t_slope, &t_intercept, &t_correlation );
@@ -232,16 +234,15 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
     {
         direction = ( *last_period > *first_period );
         i = ( direction ) ? *first_period : *last_period;
-        j = ( direction ) ? *last_period - i : *first_period - 1;last_period;
+        j = ( direction ) ? *last_period - i : *first_period - i;
 
-        peak_at_left = ( direction ) ? log( i + 1 ) : log( i + j );
-        peak_at_right = ( direction ) ? log( i + j ) : log( i + 1 );
-        for ( k = 0; k < i; k++ )
+        lp_period = log( i + j + 1 ) - log( i + 1 );
+        for ( k = 0; k < num_points; k++ )
         {
-                sum_of_intervals =  log( i + (double)( k * j ) / num_points ) - log( i + 1 );
-                updated_x_coord[k] = ( k ) ?
-                    ( x_coord[0] + ( x_coord[k] - x_coord[0] ) * sum_of_intervals / ( peak_at_right - peak_at_left ) ) :
-                    ( x_coord[ num_points - 1 ] - ( x_coord[ num_points - 1 ] - x_coord[k] ) * sum_of_intervals / ( peak_at_left - peak_at_right ) );
+            x_pos = ( direction ) ? ( x_coord[k] - x_coord[0] ) : ( x_coord[ num_points - 1 ] - x_coord[k] );
+            lp_pos = log( i + 1 + j * x_pos / observation_period ) - log( i + 1 );
+            updated_x_pos = x_pos * ( lp_pos / lp_period );
+            updated_x_coord[k] = ( direction ) ? ( x_coord[0] + updated_x_pos ) : ( x_coord[ num_points - 1 ] - updated_x_pos );
         }
         
         if ( method == 0 ) 
