@@ -182,8 +182,12 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
     int direction;
     double lp_period, observation_period, x_pos, lp_pos, updated_x_pos;
     double *updated_x_coord;
-    double t_slope, t_intercept, t_correlation, min_correlation = 0;
+    double t_slope, t_intercept, t_correlation, unperturbed_correlation, min_correlation = 0;
         
+    if ( method == 0 ) peng_dimension( x_coord, y_coord, num_points, 1, interval_min, interval_max, extra_output, linincr, &t_slope, &t_intercept, &t_correlation );
+    else higuchi_dimension( x_coord, y_coord, num_points, 1, interval_min, interval_max, extra_output, linincr, &t_slope, &t_intercept, &t_correlation );
+    unperturbed_correlation = t_correlation;
+   
     updated_x_coord = (double*) malloc( num_points * sizeof( double ) );
     observation_period = x_coord[ num_points - 1 ] - x_coord[0];
     if ( extra_output ) printf( "Correlation\n" );
@@ -209,7 +213,7 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
                 else 
                     higuchi_dimension( updated_x_coord, y_coord, num_points, 1, interval_min, interval_max, 0, linincr, &t_slope, &t_intercept, &t_correlation );
                 
-                if ( extra_output ) printf( "%d:%g,", j, t_correlation );
+                if ( extra_output ) if ( t_correlation == t_correlation ) printf( "%d:%g,", j, t_correlation - unperturbed_correlation );
                 
                 if ( t_correlation < min_correlation )
                 {
@@ -226,10 +230,7 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
         }
         if ( extra_output ) printf( "},\n" );
     }
-
-    if ( method == 0 ) peng_dimension( x_coord, y_coord, num_points, 1, interval_min, interval_max, extra_output, linincr, &t_slope, &t_intercept, &t_correlation );
-    else higuchi_dimension( x_coord, y_coord, num_points, 1, interval_min, interval_max, extra_output, linincr, &t_slope, &t_intercept, &t_correlation );
-
+    
     if ( extra_output )
     {
         direction = ( *last_period > *first_period );

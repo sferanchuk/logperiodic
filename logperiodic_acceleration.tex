@@ -93,14 +93,17 @@ Table 2 \textit{}
                                & \textit{method 1}        &             & \textit{method 2}        &             \\
                                & dimension                & correlation & dimension                & correlation \\
 \hline 
-Solar activity\\
-1-10 t.p.\\
+Solar activity,\\
+\textit{total}, 1-10 t.p.\\
 period 1, at a whole           & 0.600865                 & -0.983845   & 0.597535                 & -0.993015   \\
 period 1, split to 10 parts    & 0.603019 $\pm$ 0.0681101 &             & 0.610272 $\pm$ 0.105999  &             \\
 period 2, at a whole           & 0.580363                 & -0.983685   & 0.597535                 & -0.991654   \\
 period 2, split to 10 parts    & 0.568418 $\pm$ 0.0552829 &             & 0.573676 $\pm$ 0.0685691 &             \\
 period 3, at a whole           & 0.562857                 & -0.983647   & 0.556838                 & -0.991774   \\
 period 3, split to 10 parts    & 0.543297 $\pm$ 0.0622227 &             & 0.544673 $\pm$ 0.0601166 &             \\
+\textit{Mn line}, 1-10 t.p.\\
+at a whole                     & 0.349931                 & -0.975307   & 0.439804                 & -0.942881   \\
+split to 10 parts              & 0.345247 $\pm$ 0.102797  &             & 0.35548 $\pm$ 0.195736   &             \\
 \hline
 Temperature in Baikal\\
 \textit{long series}; 1-10 t.p.\\
@@ -120,8 +123,13 @@ period 3, split to 10 parts    & 0.364181 $\pm$ 0.227035  &             & 0.4675
 
 \newpage
 
-\includegraphics[width=0.99\textwidth]{fig_results_heatmaps.png}\\
-Figure 7 \textit{Fitting of log-periodicity. accordingly to table 2}
+\includegraphics[width=0.7\textwidth]{fig_heatmaps_explained.png}\\
+Figure 7 \textit{Fitting of log-periodicity. Explanation.}
+
+\newpage
+\includegraphics[width=0.99\textwidth]{fig_heatmaps_baikal.png}\\
+\includegraphics[width=0.99\textwidth]{fig_heatmaps_solar.png}\\
+Figure 8 \textit{Fitting of log-periodicity. Accordingly to table 2.}
 
 
 \section*{References}
@@ -143,5 +151,15 @@ Figure 7 \textit{Fitting of log-periodicity. accordingly to table 2}
 %grep ^20 ./daya2sddeg\_ts4_Nov\_2013\_hdr.txt | awk -v b1=2000 -v b3=1360 '{ s=s "," 100 *( $1 - b1 ) "," 100 * ( $3 - b3 ); } END { print substr(s,2,length(s)); }' | ./fractal\_dimension -d\_xy 
 
 %echo "$s_beg" >../figure_sources/fig_baikal_shortseries.html;cat ../data_files/baikal_shortseries.txt | while read line; do a1=${line:0:10};a2=${line:11:5};n1=`echo "($a1-$d_beg)*0.00001" | bc`;n2=`echo "$a2*10" | bc`; s="+\" $n1,$n2\""; echo "$s" >>../figure_sources/fig_baikal_shortseries.html; done; echo "$s_end" >>../figure_sources/fig_baikal_shortseries.html;
+
+%head -c 29996 ../data_files/lin_tsi.txt 
+%head -c 60998 ../data_files/lin_tsi.txt | tail -n 31002
+%tail -n 31795 ../data_files/lin_tsi.txt
+%head -n 525252 ../data_files/baikal_longseries.txt |   awk -F ',' '{ print ($1-1262293200)*0.000001 "," $2 }'
+%head -n 1222863 ../data_files/baikal_longseries.txt | tail -n $((1222863-718437))  |  awk -F ',' '{ print ($1-1367352120)*0.000001 "," $2 }'
+%tail -n $((1575756-1222863)) ../data_files/baikal_longseries.txt |  awk -F ',' '{ print ($1-1430427720)*0.000001 "," $2 }'
+%cat ../data_files/baikal_shortseries.txt |   awk -F ',' '{ print ($1-1496172600)*0.000001 "," $2 }'
+
+%for cmd in './fractal_dimension -lh -v -max 10 -linincr' './fractal_dimension -lh -v -max 1000' './fractal_dimension -lh -v'; do echo "["; cat ../data_files/lin_tsi.txt | bash -c "$cmd" | head -n 38 | tail -n 36; echo "],"; done;
 
 \end{document}
