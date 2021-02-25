@@ -66,9 +66,9 @@ void higuchi_dimension( double *data_x, double *data_y, int npoints, int method,
     
     if ( extra_output )
     {
-        printf( "path:" );
+        printf( "path = \"M" );
         for ( i = 0; i < num_intervals; i++ ) printf( " %g,%g", log_intervals[i], log_path[i] );
-        printf( "\n" );
+        printf( "\";\n" );
     }
 }
 
@@ -118,9 +118,9 @@ void peng_dimension( double *data_x, double *data_y, int npoints, int method, in
     *correlation = linear_regression( log_intervals, log_path, num_intervals, slope, intercept );
     if ( extra_output )
     {
-        printf( "path:" );
+        printf( "path = \"M" );
         for ( i = 0; i < num_intervals; i++ ) printf( " %g,%g", log_intervals[i], log_path[i] );
-        printf( "\n" );
+        printf( "\";\n" );
     }
 }
 
@@ -157,43 +157,35 @@ double averaging( double *x_coord, double *y_coord, int num_points, int method, 
 
 }
 
-/*
-void logperiodic_intervals( int min_count, int num_peaks, int direction, double *peak_positions )
-{
-    int i;
-    double peak_at_left, peak_at_right, sum_of_intervals;
-    
-    peak_at_left = ( direction ) ? log( min_count + 1 ) : log( min_count + num_peaks );
-    peak_at_right = ( direction ) ? log( min_count + num_peaks ) : log( min_count + 1 );
-    
-    for ( i = 0; i < num_peaks; i++ ) 
-    {
-        sum_of_intervals = ( log( min_count + i + 1 ) - log( min_count + 1 ) );
-        peak_positions[ i ] = ( direction ) ? 
-            ( sum_of_intervals / ( peak_at_right - peak_at_left ) ) :
-            ( 1 - sum_of_intervals / ( peak_at_left - peak_at_right ) );
-    }
-}
-*/
-
 int logperiodic_approximation( double *x_coord, double *y_coord, int num_points, int method, int interval_min, int interval_max, int extra_output, int linincr, int *first_period, int *last_period,  double *slope, double *intercept, double *correlation )
 {
     int i, j, k;
     int direction;
-    double lp_period, observation_period, x_pos, lp_pos, updated_x_pos;
+    int best_i, best_j, best_dir;
+    double lp_period, observation_period, x_min, x_max, x_pos, lp_pos, updated_x_pos;
     double *updated_x_coord;
     double t_slope, t_intercept, t_correlation, unperturbed_correlation, min_correlation = 0;
         
+    if ( extra_output ) printf( "/* unperturbed: */\n" );
     if ( method == 0 ) peng_dimension( x_coord, y_coord, num_points, 1, interval_min, interval_max, extra_output, linincr, &t_slope, &t_intercept, &t_correlation );
     else higuchi_dimension( x_coord, y_coord, num_points, 1, interval_min, interval_max, extra_output, linincr, &t_slope, &t_intercept, &t_correlation );
     unperturbed_correlation = t_correlation;
+    if ( extra_output ) printf( "interval = [ %g, %g ];\ndimension = %g;\ncorrelation = %g;\n", x_coord[0], x_coord[ num_points - 1 ], -t_slope, t_correlation );
    
     updated_x_coord = (double*) malloc( num_points * sizeof( double ) );
-    observation_period = x_coord[ num_points - 1 ] - x_coord[0];
-    if ( extra_output ) printf( "Correlation\n" );
+    x_min = x_coord[0];
+    x_max = x_coord[ num_points - 1 ];
+    observation_period = x_max - x_min;
+    if ( extra_output ) 
+    {
+        printf( "/* perturbed: */\n" );
+        printf( "delta_i = [" );
+        for ( j = 2; j < 100; j = ( j * 3 ) / 2 ) printf( "%d,", j );
+        printf( "];\ndelta_correlation = [\n" );
+    }
     for ( direction = 0; direction <= 1; direction++ )
     {
-        if ( extra_output ) printf( "{ /*%s*/\n", ( direction == 0 ) ? "forwards" : "backwards" );
+        if ( extra_output ) printf( "{ /*%s*/\n", ( direction ) ? "expansion" : "contraction" );
         for ( i = 2; i < 1000; i = ( i * 3 ) / 2 )
         {
             if ( extra_output ) printf( "%d: {", i );
@@ -202,10 +194,10 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
                 lp_period = log( i + j + 1 ) - log( i + 1 );
                 for ( k = 0; k < num_points; k++ )
                 {
-                    x_pos = ( direction ) ? ( x_coord[k] - x_coord[0] ) : ( x_coord[ num_points - 1 ] - x_coord[k] );
-                    lp_pos = log( i + 1 + j * x_pos / observation_period ) - log( i + 1 );
-                    updated_x_pos = x_pos * ( lp_pos / lp_period );
-                    updated_x_coord[k] = ( direction ) ? ( x_coord[0] + updated_x_pos ) : ( x_coord[ num_points - 1 ] - updated_x_pos );
+                    x_pos = ( direction ) ? ( x_coord[k] - x_min ) : ( x_max - x_coord[k] );
+                    lp_pos = 1 - exp( -( x_pos / observation_period ) * j * lp_period );
+                    updated_x_pos = lp_pos * observation_period / ( 1 - exp( -j * lp_period ) );
+                    updated_x_coord[k] = ( direction ) ? ( x_min + updated_x_pos ) : ( x_max - updated_x_pos );
                 }
                 
                 if ( method == 0 ) 
@@ -218,8 +210,11 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
                 if ( t_correlation < min_correlation )
                 {
                     min_correlation = t_correlation;
-                    *first_period = ( direction ) ? i : i + j;
-                    *last_period = ( direction ) ? i + j : i;
+                    best_i = i;
+                    best_j = j;
+                    best_dir = direction;
+                    *first_period = ( direction ) ?  i : ( i + j );
+                    *last_period = ( direction ) ? ( i + j ) : i;
                     *slope = t_slope;
                     *intercept = t_intercept;
                     *correlation = t_correlation;
@@ -233,18 +228,23 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
     
     if ( extra_output )
     {
-        direction = ( *last_period > *first_period );
-        i = ( direction ) ? *first_period : *last_period;
-        j = ( direction ) ? *last_period - i : *first_period - i;
+        printf( "];\n" ); 
+        direction = best_dir;
+        i = best_i;
+        j = best_j;
 
         lp_period = log( i + j + 1 ) - log( i + 1 );
         for ( k = 0; k < num_points; k++ )
         {
-            x_pos = ( direction ) ? ( x_coord[k] - x_coord[0] ) : ( x_coord[ num_points - 1 ] - x_coord[k] );
-            lp_pos = log( i + 1 + j * x_pos / observation_period ) - log( i + 1 );
-            updated_x_pos = x_pos * ( lp_pos / lp_period );
-            updated_x_coord[k] = ( direction ) ? ( x_coord[0] + updated_x_pos ) : ( x_coord[ num_points - 1 ] - updated_x_pos );
+            x_pos = ( direction ) ? ( x_coord[k] - x_min ) : ( x_max - x_coord[k] );
+            lp_pos = 1 - exp( -( x_pos / observation_period ) * j * lp_period );
+            updated_x_pos = lp_pos * observation_period / ( 1 - exp( -j * lp_period ) );
+            updated_x_coord[k] = ( direction ) ? ( x_min + updated_x_pos ) : ( x_max - updated_x_pos );
         }
+        printf( "lp_period = %g;\n", lp_period );
+        printf( "approximated_peaks = [" );
+        for ( k = 0; k <= j; k++ ) printf( "%g,", updated_x_coord[ k * ( num_points - 1 ) / j ] );
+        printf( "];\n" );
         
         if ( method == 0 ) 
             peng_dimension( updated_x_coord, y_coord, num_points, 1, interval_min, interval_max, 1, linincr, &t_slope, &t_intercept, &t_correlation );

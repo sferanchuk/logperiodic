@@ -53,6 +53,23 @@ The generic linkage between ''fractal'' properties and a presence of log-periodi
 
 \textit{Fitting of log-periodicity}
 
+Log-periodic perturbation $f$ depends on a time $t$ by a definition as written below: 
+
+$t < t_c, f \sim \sin( \omega \log( t_c - t ) )$
+
+$t > t_c, f \sim \sin( \omega \log( t - t_c ) )$
+
+There, a critical time $t_c$ and a frequency of transformed oscillations $\omega$ are a minimal set of parameters for any log-periodicity. Peaks of this distribution which can be ... to outbreaks in an observed ''world'' are located at positions defined by expression $ 2 \pi i =  \omega \log( t_c - t_i ), i = 1, 2,  ..., n, ... $ (for a case $t < t_c$).
+
+Let the observed distribution is in bounds between $n_m$ and $n_M$ of the assumend log-periodicity, that is, $\omega \log( t_{max} - t_c )  = n_m, \omega \log( t_{min} - t_c ) = n_M$, or \textit{vice versa}. The period $\omega$ would be then $\omega = \log( n_M ) - \log( n_m ) $, transformation of time axis $t \to t'$ which put the position of peaks $t_i, i = 1 ... (n_M - n_m)$ into a uniform sequence can be written as follows:
+
+\begin{eqnarray}
+t'_i = t_{max} - ( t_{max} - t_{min} )\frac{ 1 - e^{ - \omega i } }{ 1 - e^{ - \omega (n_M - n_m) } }, t < t_c; \nonumber\\
+t'_i = t_{min} + ( t_{max} - t_{min} )\frac{ 1 - e^{ - \omega i } }{ 1 - e^{ - \omega (n_M - n_m) } }, t > t_c. \\
+\end{eqnarray}
+
+This means, near the critical time the time go faster, the ''true'' time periods are wider than it was measured, and in another side of obervation period it should instead be shorter, ... to keep an overall match to a given time scale. 
+
 \noindent
 {\large{\textbf{A}}}\\
 \includegraphics[width=0.8\textwidth]{fig_methods_usc18.png}\\
@@ -61,7 +78,7 @@ The generic linkage between ''fractal'' properties and a presence of log-periodi
 {\large{\textbf{B}}}\\
 \includegraphics[width=0.8\textwidth]{fig_methods_acrim3.png}\\
 \vskip 12pt
-Figure 2 \textit{Illustrations of attempts to guess a presence of the log-periodic dependency (A) Uniform distribution - chart in fig. 1A (B) Periodic systematic bias - chart in fig 1B, two tails in separate.}
+Figure 2 \textit{Illustrations of attempts to guess a presence of the log-periodic dependency (A) Uniform distribution - chart in fig. 1A (B) Periodic bursts - chart in fig 1B, two tails in separate.}
 \vskip 12pt
 
 
@@ -169,6 +186,7 @@ correlation   & -0.992127 & 0.996914  & -0.996929 & -0.99992  & -0.995057 & -0.9
 
 }}
 
+\vskip 12pt
 
 Table 2 \textit{}
 
