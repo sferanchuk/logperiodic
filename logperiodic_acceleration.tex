@@ -78,7 +78,7 @@ This means, near the critical time the time go faster, the ''true'' time periods
 {\large{\textbf{B}}}\\
 \includegraphics[width=0.8\textwidth]{fig_methods_acrim3.png}\\
 \vskip 12pt
-Figure 2 \textit{Illustrations of attempts to guess a presence of the log-periodic dependency (A) Uniform distribution - chart in fig. 1A (B) Periodic bursts - chart in fig 1B, two tails in separate.}
+Figure 2 \textit{Illustrations of attempts to guess a presence of the log-periodic dependency (A) Uniform distribution - chart in fig. 1A (B) Periodic bursts - chart in fig 1B, two parts, 2000 to 2009 and ..., in separate.}
 \vskip 12pt
 
 
@@ -163,28 +163,29 @@ Table 1 \textit{Supplement to figure 2 - results of fitting of log-periodicity i
 
 \begin{tabular}{cccccccccc}
 \hline
-             & usc\_18        &           & acrim3-1  &           & acrim3-2  &           \\
-             & method 1       & method 2  &           &           &           &           \\
+             & usc\_18        &           & acrim3-1  &           & acrim3-2   &           \\
+             & method 1       & method 2  &           &           &            &           \\
 \hline
 plain: \\
-dimension     & 0.577973  & 0.579382  & 0.691307  & 0.747027  & 0.598869  & 0.645797  \\
-correlation   & -0.983925 & -0.969044 & -0.984111 & -0.97212  & -0.974277 & -0.959029 \\
+dimension     & 0.577973      & 0.579382  & 0.624222  & 0.667683  & 0.4569474  & 0.477499  \\
+correlation   & 0.983925      & 0.969044  & 0.97411   & 0.958568  & 0.94348    & 0.922355  \\
 \hline
 fit in full: \\ 
-direction     & decc.     & decc.     & accel.    & accel.    & accel.    & accel.    \\
-critical time & -711      & -141      & +318      & +474      & +6        & +8        \\
-dimension     & 0.686096  & 0.880372  & 0.858975  & 1.07331   & 0.881265  & 0.788433  \\
-correlation   & -0.992609 & -0.996231 & -0.998645 & -0.998409 & -0.998075 & -0.979409 \\
+direction     & accel.        & accel.    & accel.    & accel.    & deccel.    & deccel.   \\
+critical time & +28           & +94       & +63       & +13       & -19        & -63       \\
+dimension     & 0.697891      & 0.621803  & 0.785739  & 0.865593  & 0.706591   & 0.687815 \\
+correlation   & 0.991618      & 0.978947  & 0.998469  & 0.996726  & 0.99833    & 0.990325 \\
 \hline
 fit in part: \\
-direction     & accel.    & decc.     & decc.     & accel.    & accel.    & accel.    \\
-critical time & +2        & -141      & -474      & +2        & +63       & +3        \\
-dimension     & 0.677549  & 0.949008  & 0.822429  & 0.949565  & 0.599305  & 0.974975  \\
-correlation   & -0.992127 & 0.996914  & -0.996929 & -0.99992  & -0.995057 & -0.999909 \\
+direction     & accel.        & accel.    & accel.    & accel.    & deccel.   & accel.    \\
+critical time & +3            & +94       & +474      & +13       & -314      & +711      \\
+dimension     & 0.66833       & 0.65472   & 0.7813    & 0.908882  & 0.710503  & 0.703412  \\
+correlation   & 0.993703      & 0.972722  & 0.996467  & 0.995446  & 0.9983497 & 0.995904  \\
 \hline
 \end{tabular}
 
 }}
+
 
 \vskip 12pt
 
@@ -238,6 +239,8 @@ period 3, split to 10 parts    & 0.364181 $\pm$ 0.227035  &             & 0.4675
 %grep ^20 ./daya2sddeg\_ts4_Nov\_2013\_hdr.txt | awk -v b1=2000 -v b3=1360 '{ s=s "," 100 *( $1 - b1 ) "," 100 * ( $3 - b3 ); } END { print substr(s,2,length(s)); }' | ./fractal\_dimension -d\_xy 
 
 %echo "$s_beg" >../figure_sources/fig_baikal_shortseries.html;cat ../data_files/baikal_shortseries.txt | while read line; do a1=${line:0:10};a2=${line:11:5};n1=`echo "($a1-$d_beg)*0.00001" | bc`;n2=`echo "$a2*10" | bc`; s="+\" $n1,$n2\""; echo "$s" >>../figure_sources/fig_baikal_shortseries.html; done; echo "$s_end" >>../figure_sources/fig_baikal_shortseries.html;
+
+% head -c 30710 ../data_files/acrim3_data.txt; tail -c 33827 ../data_files/acrim3_data.txt
 
 %head -n 525252 ../data_files/baikal_longseries.txt |   awk -F ',' '{ print ($1-1262293200)*0.000001 "," $2 }'
 %head -n 1222863 ../data_files/baikal_longseries.txt | tail -n $((1222863-718437))  |  awk -F ',' '{ print ($1-1367352120)*0.000001 "," $2 }'

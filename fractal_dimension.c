@@ -253,7 +253,7 @@ int logperiodic_approximation( double *x_coord, double *y_coord, int num_points,
         
     }
     free( updated_x_coord );
-    return ( t_correlation > min_correlation );
+    return ( -unperturbed_correlation < -min_correlation );
 }
 
 int option_selected( const char *key, int argc, char **argv )
@@ -355,25 +355,25 @@ int main( int argc, char **argv )
             case 'h':
             {
                 higuchi_dimension( xvalues, yvalues, npoints, ( argv[1][2] == 'm' ) ? 1 : 0, interval_min, interval_max, extra_output, linincr, &slope, &intercept, &correlation );
-                printf( "dimension: %g\nintercept: %g\ncorrelation: %g\n", -slope, intercept, correlation );        
+                printf( "intercept = %g;\nabs(slope) = dimension = %g;\nabs(correlation) = %g;\n", intercept, -slope, -correlation );        
                 break;
             }
             case 'p':
             {
                 peng_dimension( xvalues, yvalues, npoints, ( argv[1][2] == 'm' ) ? 1 : 0, interval_min, interval_max, extra_output, linincr, &slope, &intercept, &correlation );
-                printf( "dimension: %g\nintercept: %g\ncorrelation: %g\n", -slope, intercept, correlation );        
+                printf( "intercept = %g\nabs(slope) = dimension = %g;\nabs(correlation) = %g;\n", intercept, -slope, -correlation );        
                 break;
             }
             case 'a':
             {
                 variation = averaging( xvalues, yvalues, npoints, argv[1][2] == 'h', interval_min, interval_max, extra_output, linincr, atoi( argv[2] ), &slope, &intercept );
-                printf( "dimension: %g\nintercept: %g\nvariation of dimension: %g\n", -slope, intercept, variation );                 
+                printf( "intercept = %g;\ndimension = %g;\nvariation = %g;\n", intercept, -slope, variation );                 
                 break;
             }
             case 'l':
             {
                 credibility = logperiodic_approximation( xvalues, yvalues, npoints, argv[1][2] == 'h', interval_min, interval_max, extra_output, linincr, &first_period, &last_period, &slope, &intercept, &correlation );
-                printf( "credibility: %s\ndirection: %s\nperiod in beginning: %d\nperiod in end: %d\ndimension: %g\nintercept: %g\ncorrelation: %g\n", credibility ? "sufficient" : "insufficient", ( first_period < last_period ) ? "expansion from past" : "contraction to future", first_period, last_period, -slope, intercept, correlation );          
+                printf( "credibility: %s\ndirection: %s\nperiod in beginning: %d\nperiod in end: %d\nintercept: %g\ndimension: %g\ncorrelation: %g\n", credibility ? "sufficient" : "insufficient", ( first_period < last_period ) ? "expansion from past" : "contraction to future", first_period, last_period, intercept, -slope, -correlation );          
                 break;
             }
             default:
